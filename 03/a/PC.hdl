@@ -16,5 +16,5 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    
 }
