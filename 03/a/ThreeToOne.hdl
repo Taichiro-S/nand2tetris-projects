@@ -1,0 +1,15 @@
+/*
+* 3-to-1 multiplexer
+*/
+
+CHIP ThreeToOne {
+    IN in0,in1,in2;
+    OUT out[3];
+
+    PARTS:
+        // Direct connection of inputs to outputs
+        // as there's no built-in concatenation
+        And(a=in0, b=true, out=out[2]);
+        And(a=in1, b=true, out=out[1]);
+        And(a=in2, b=true, out=out[0]);
+}
