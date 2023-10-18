@@ -23,7 +23,20 @@
  * to their new values only in the next time step. If reset==1 then the 
  * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
  * than to the address resulting from executing the current instruction. 
- */
+
+ * ALU 
+ * in x[16], y[16], zx, nx, zy, ny, f, no
+ * out out[16], zr, ng
+
+ * PC
+ * in in[16], load, inc, reset
+ * out out[16]
+
+ * Register
+ * in in[16], load
+ * out out[16]
+ 
+*/
 
 CHIP CPU {
 
@@ -39,5 +52,30 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // calc isAddress
+    Not(in=instruction[15], out=isAddress)
+
+    // Mux 1
+    Mux16(a=instruction, b=ALUOut, sel=isAddress, out=MuxOut1);
+
+    // calc loadAR
+    Or(a=isAddress, b=instruction[5], out=loadAR)
+    // A Register
+    Register(in=MuxOut1, load=loadAR, out[0..14]=addressM[0..14], out=AROut);
+
+    // calc loadDR
+    And(a=instruction[4], b=instruction[15], out=loadDR)
+    // D Register
+    Register(in=ALUout, load=loadDR, out=DROut);
+
+    // Mux 2
+    Mux16(a=AROut, b=inM, sel=instruction[12], out=MuxOut2);
+
+    ALU(x=DROut, y=MuxOut2, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, out=outM, zr=zr, ng=ng);
+    
+    Or(a=instruction[2], b=instruction[1], out=orOut1);
+    Or(a=orOut1, b=instruction[0], out=orOut2);
+    Not(in=orOut2, out=notOut);
+    PC(in=AROut, load=orOut2, inc=notOut, reset=reset, out[0..14]=pc[0..14]);
+    And(a=instruction[3], b=instruction[15], out=writeM);
 }
