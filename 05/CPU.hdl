@@ -53,29 +53,70 @@ CHIP CPU {
 
     PARTS:
     // calc isAddress
-    Not(in=instruction[15], out=isAddress)
+    Not(in=instruction[15], out=isAddress);
+    Not(in=isAddress, out=isCalc);
 
     // Mux 1
-    Mux16(a=instruction, b=ALUOut, sel=isAddress, out=MuxOut1);
+    Mux16(a=ALUOut, b=instruction, sel=isAddress, out=MuxOut1);
 
     // calc loadAR
-    Or(a=isAddress, b=instruction[5], out=loadAR)
+    Or(a=isAddress, b=instruction[5], out=loadAR);
     // A Register
-    Register(in=MuxOut1, load=loadAR, out[0..14]=addressM[0..14], out=AROut);
+    ARegister(in=MuxOut1, load=loadAR, out[0..14]=addressM[0..14], out=AROut);
 
     // calc loadDR
-    And(a=instruction[4], b=instruction[15], out=loadDR)
+    And(a=instruction[4], b=isCalc, out=loadDR);
     // D Register
-    Register(in=ALUout, load=loadDR, out=DROut);
+    DRegister(in=ALUOut, load=loadDR, out=DROut, out=DR);
 
     // Mux 2
     Mux16(a=AROut, b=inM, sel=instruction[12], out=MuxOut2);
 
-    ALU(x=DROut, y=MuxOut2, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, out=outM, zr=zr, ng=ng);
+    ALU(
+        x=DROut,
+        y=MuxOut2, 
+        zx=instruction[11], 
+        nx=instruction[10], 
+        zy=instruction[9], 
+        ny=instruction[8], 
+        f=instruction[7], 
+        no=instruction[6], 
+        out=ALUOut, 
+        out=outM, 
+        zr=zr, 
+        ng=ng
+    );
+
+    // out > 0
+    Or(a=ng, b=zr, out=ngOrZr);
+    Not(in=ngOrZr, out=pos);
+    And(a=pos, b=instruction[0], out=isPos);
+    // out = 0
+    And(a=zr, b=instruction[1], out=isZr);
+    // out < 0
+    And(a=ng, b=instruction[2], out=isNeg);
+    // jump
+    And(a=instruction[0], b=instruction[1], out=j1);
+    And(a=j1, b=instruction[2], out=jump);
+    // no jump
+    Not(in=jump, out=noJump);
     
-    Or(a=instruction[2], b=instruction[1], out=orOut1);
-    Or(a=orOut1, b=instruction[0], out=orOut2);
-    Not(in=orOut2, out=notOut);
-    PC(in=AROut, load=orOut2, inc=notOut, reset=reset, out[0..14]=pc[0..14]);
-    And(a=instruction[3], b=instruction[15], out=writeM);
+    // calc PCLoad
+    // if ((pos|zr|neg) & isCalc ) | (jump & isCalc), PCLoad = 1 
+    Or(a=isPos, b=isZr, out=posOrZr);
+    Or(a=posOrZr, b=isNeg, out=posOrZrOrNeg);
+    And(a=posOrZrOrNeg, b=isCalc, out=jump1);
+    And(a=jump, b=isCalc, out=jump2);
+    Or(a=jump1, b=jump2, out=PCLoad);
+
+    // calc PCInc
+    // if (noJump & isCalc) | isAddress, PCInc = 1
+    And(a=noJump, b=isCalc, out=jump3);
+    Or(a=isAddress, b=jump3, out=PCInc);
+
+    // Program Counter
+    PC(in=AROut, load=PCLoad, inc=PCInc, reset=reset, out[0..14]=pc[0..14]);
+
+    // calc writeM
+    And(a=instruction[3], b=isCalc, out=writeM);
 }

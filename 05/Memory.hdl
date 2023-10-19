@@ -27,5 +27,15 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // if Not(address[14]), load from ram, else load from io
+    DMux(in=load, sel=address[14], a=ramLoad, b=ioLoad);
+    // if address[13] and address[14], load from keyboard
+    DMux(in=ioLoad, sel=address[13], a=scrLoad, b=keyLoad);
+
+    RAM16K(in=in, load=ramLoad, address=address[0..13], out=ramOut);
+    Keyboard(out=keyOut);
+    Screen(in=in, load=scrLoad, address=address[0..12], out=scrOut);
+
+    Mux16(a=scrOut, b=keyOut, sel=address[13], out=ioOut);
+    Mux16(a=ramOut, b=ioOut, sel=address[14], out=out);
 }
