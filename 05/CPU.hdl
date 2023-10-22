@@ -54,7 +54,7 @@ CHIP CPU {
     PARTS:
     // calc isAddress
     Not(in=instruction[15], out=isAddress);
-    Not(in=isAddress, out=isCalc);
+    Not(in=isAddress, out=isComp);
 
     // Mux 1
     Mux16(a=ALUOut, b=instruction, sel=isAddress, out=MuxOut1);
@@ -65,7 +65,7 @@ CHIP CPU {
     ARegister(in=MuxOut1, load=loadAR, out[0..14]=addressM[0..14], out=AROut);
 
     // calc loadDR
-    And(a=instruction[4], b=isCalc, out=loadDR);
+    And(a=instruction[4], b=isComp, out=loadDR);
     // D Register
     DRegister(in=ALUOut, load=loadDR, out=DROut, out=DR);
 
@@ -102,21 +102,21 @@ CHIP CPU {
     Not(in=jump, out=noJump);
     
     // calc PCLoad
-    // if ((pos|zr|neg) & isCalc ) | (jump & isCalc), PCLoad = 1 
+    // if ((pos|zr|neg) & isComp ) | (jump & isComp), PCLoad = 1 
     Or(a=isPos, b=isZr, out=posOrZr);
     Or(a=posOrZr, b=isNeg, out=posOrZrOrNeg);
-    And(a=posOrZrOrNeg, b=isCalc, out=jump1);
-    And(a=jump, b=isCalc, out=jump2);
+    And(a=posOrZrOrNeg, b=isComp, out=jump1);
+    And(a=jump, b=isComp, out=jump2);
     Or(a=jump1, b=jump2, out=PCLoad);
 
     // calc PCInc
-    // if (noJump & isCalc) | isAddress, PCInc = 1
-    And(a=noJump, b=isCalc, out=jump3);
+    // if (noJump & isComp) | isAddress, PCInc = 1
+    And(a=noJump, b=isComp, out=jump3);
     Or(a=isAddress, b=jump3, out=PCInc);
 
     // Program Counter
     PC(in=AROut, load=PCLoad, inc=PCInc, reset=reset, out[0..14]=pc[0..14]);
 
     // calc writeM
-    And(a=instruction[3], b=isCalc, out=writeM);
+    And(a=instruction[3], b=isComp, out=writeM);
 }
