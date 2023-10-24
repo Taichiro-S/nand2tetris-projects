@@ -22,8 +22,7 @@ def compare_bit_files(file1, file2):
             if is_same:
                 print('same')
 
-INPUT_FILE1 = "/Users/sekiguchi/Documents/nand2tetris/projects/06/rect/myRect.hack"
-INPUT_FILE2 = "/Users/sekiguchi/Documents/nand2tetris/projects/06/rect/Rect.hack"
+INPUT_FILE1 = "/Users/sekiguchi/Documents/nand2tetris/projects/06/pong/myPong.hack"
+INPUT_FILE2 = "/Users/sekiguchi/Documents/nand2tetris/projects/06/pong/Pong.hack"
 
 compare_bit_files(INPUT_FILE1, INPUT_FILE2)
-                    
