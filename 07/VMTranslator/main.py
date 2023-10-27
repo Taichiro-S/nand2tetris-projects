@@ -1,4 +1,5 @@
-from vm_parser import VMParser
+from vm_translator import VMTranslator
 
-INPUT_FILE = "/Users/sekiguchi/Documents/nand2tetris/projects/07/MemoryAccess/BasicTest/BasicTest.vm"
-parser = VMParser(INPUT_FILE)
+INPUT_FILE = "/Users/sekiguchi/Documents/nand2tetris/projects/07/MemoryAccess/StaticTest/StaticTest.vm"
+translator = VMTranslator(INPUT_FILE)
+translator.translate()

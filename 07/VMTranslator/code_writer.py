@@ -1,19 +1,23 @@
 class CodeWriter:
-    output_file_path = ''
-    file_name = ''
     def __init__(self,vm_file_path):
+        self.lines = []
+        self.output_file_path = ''
+        self.file_name = ''
+        self.eq_i = 0
+        self.gt_i = 0
+        self.lt_i = 0
         """Create a new .asm file and prepare it for writing."""
         self.set_file_name(vm_file_path)
-        with open(CodeWriter.output_file_path, 'x', encoding='utf-8') as f:
-            self.output_file = f
+        with open(self.output_file_path, 'w', encoding='utf-8') as f:
+            f.write('')
     def set_file_name(self, file_path):
         """Set the name of the .asm file."""
         file_name = file_path.split('/')[-1]
         file_name = file_name.replace('.vm', '.asm')
         directory = file_path.split('/')[:-1]
         directory = '/'.join(directory) + '/'
-        CodeWriter.output_file_path = directory + file_name
-        CodeWriter.file_name = file_name
+        self.output_file_path = directory + file_name
+        self.file_name = file_name
     def write_arithmetic(self, command):
         """Writes the assembly code that is the translation of the given arithmetic command."""
         if command == 'add':
@@ -21,241 +25,257 @@ class CodeWriter:
             # pop next value from stack to M
             # add D and M
             # push result to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=D+M\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('M=D+M')
+            self.lines.append('@SP')
+            self.lines.append('M=M+1')
         if command == 'sub':
             # pop topmost value from stack to D
             # pop next value from stack to M
             # subtract D from M
             # push result to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=M-D\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('M=M-D')
+            self.lines.append('@SP')
+            self.lines.append('M=M+1')
         if command == 'neg':
             # pop topmost value from stack and negate it
             # push result to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=-M\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1') # decrement SP
+            self.lines.append('A=M') # A = SP
+            self.lines.append('M=-M') # RAM[SP] = -RAM[SP]
+            self.lines.append('@SP')
+            self.lines.append('M=M+1')
         if command == 'eq':
+            self.eq_i += 1
             # pop topmost value from stack to D
             # pop next value from stack to M
             # if D == M, push -1 to stack
             # else push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n') # D = y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=D-M\n') # D = y - x
-            self.output_file.write('@EQ\n')
-            self.output_file.write('D;JEQ\n') # if D == 0, jump to EQ
-            self.output_file.write('@NE\n')
-            self.output_file.write('D;JNE\n') # if D != 0, jump to NE
-            self.output_file.write('(EQ)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=-1\n') # push -1 to stack
-            self.output_file.write('(NE)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=0\n') # push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M') # D = RAM[SP]
+            # self.lines.append('M=0')
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=D-M') # D = RAM[SP] - RAM[SP-1]
+            # self.lines.append('M=0')
+            self.lines.append('@EQ' + str(self.eq_i))
+            self.lines.append('D;JEQ') # if D == 0, jump to EQ
+            self.lines.append('@NE' + str(self.eq_i))
+            self.lines.append('D;JNE') # if D != 0, jump to NE
+            self.lines.append('(EQ' + str(self.eq_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=-1') # push -1 to stack
+            self.lines.append('@ENDEQ' + str(self.eq_i))
+            self.lines.append('0;JMP') # jump to ENDEQ
+            self.lines.append('(NE' + str(self.eq_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=0') # push 0 to stack
+            self.lines.append('(ENDEQ' + str(self.eq_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
         if command == 'gt':
+            self.gt_i += 1
             # pop topmost value(=y) from stack to D
             # pop next value(=x) from stack to M
-            # if D > M, push -1 to stack
+            # if M > D, push -1 to stack
             # else push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n') # D = y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=D-M\n') # D = y - x
-            self.output_file.write('@GT\n')
-            self.output_file.write('D;JGT\n') # if D > 0, jump to GT
-            self.output_file.write('@LT\n')
-            self.output_file.write('D;JLT\n') # if D < 0, jump to LT
-            self.output_file.write('(GT)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=-1\n') # push -1 to stack
-            self.output_file.write('(LT)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=0\n') # push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M') # D = y
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M-D') # D = x - y
+            self.lines.append('@GT' + str(self.gt_i))
+            self.lines.append('D;JGT') # if D > 0, jump to GT
+            self.lines.append('@LE' + str(self.gt_i))
+            self.lines.append('D;JLE') # if D <= 0, jump to LE
+            self.lines.append('(GT' + str(self.gt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=-1') # push -1 to stack
+            self.lines.append('@ENDGT' + str(self.gt_i))
+            self.lines.append('0;JMP') # jump to ENDEQ
+            self.lines.append('(LE' + str(self.gt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=0') # push 0 to stack
+            self.lines.append('(ENDGT' + str(self.gt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
         if command == 'lt':
+            self.lt_i += 1
             # pop topmost value(=y) from stack to D
             # pop next value(=x) from stack to M
-            # if D < M, push -1 to stack
+            # if M < D, push -1 to stack
             # else push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n') # D = y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=D-M\n') # D = y - x
-            self.output_file.write('@LT\n')
-            self.output_file.write('D;JLT\n') # if D < 0, jump to LT
-            self.output_file.write('@GT\n')
-            self.output_file.write('D;JGT\n') # if D > 0, jump to GT
-            self.output_file.write('(LT)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=-1\n') # push -1 to stack
-            self.output_file.write('(GT)\n')
-            self.output_file.write('@SP\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=0\n') # push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M') # D = y
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M-D') # D = x - y
+            self.lines.append('@LT' + str(self.lt_i))
+            self.lines.append('D;JLT') # if D < 0, jump to LT
+            self.lines.append('@GE' + str(self.lt_i))
+            self.lines.append('D;JGE') # if D >= 0, jump to GE
+            self.lines.append('(LT' + str(self.lt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=-1') # push -1 to stack
+            self.lines.append('@ENDLT' + str(self.lt_i))
+            self.lines.append('0;JMP') # jump to ENDEQ
+            self.lines.append('(GE' + str(self.lt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('A=M')
+            self.lines.append('M=0') # push 0 to stack
+            self.lines.append('(ENDLT' + str(self.lt_i) + ')')
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
         if command == 'and':
             # pop topmost value(=y) from stack to D
             # pop next value(=x) from stack to M
             # if D & M, push -1 to stack
             # else push 0 to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n') # D = y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=D&M\n') # M = y & x
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M') # D = y
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('M=D&M') # M = y & x
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
         if command == 'or':
             # pop topmost value(=y) from stack to D
             # push D | netx value(=x) to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('D=M\n') # D = y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('A=M\n')
-            self.output_file.write('M=D|M\n') # M = y | x
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('D=M') # D = y
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('M=D|M') # M = y | x
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
         if command == 'not':
             # push !topmost value to stack
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M-1\n')
-            self.output_file.write('M=!M\n') # M = !y
-            self.output_file.write('@SP\n')
-            self.output_file.write('M=M+1\n') # increment SP
+            self.lines.append('@SP')
+            self.lines.append('M=M-1')
+            self.lines.append('A=M')
+            self.lines.append('M=!M') # M = !y
+            self.lines.append('@SP')
+            self.lines.append('M=M+1') # increment SP
     def write_push_pop(self, command, seg, val):
         """Writes the assembly code that is the translation of the given push or pop command."""
         if command == 'C_PUSH':
-            if seg == 'constant':
-                # push constant val to stack
-                self.output_file.write('@' + val + '\n')
-                self.output_file.write('D=A\n') # D = val
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n') # address = RAM[SP]
-                self.output_file.write('M=D\n') # RAM[address] = D
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n') # increment SP
-            if seg == 'local':
-                # push local val to stack
-                self.output_file.write('@' + val + '\n')
-                self.output_file.write('D=A\n')
-                self.output_file.write('@LCL\n')
-                self.output_file.write('D=M+D\n') # address = RAM[LCL] + val
-                self.output_file.write('A=D\n')
-                self.output_file.write('D=M\n') # D = RAM[address]
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n') # RAM[SP] = D
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n') # increment SP
-            if seg == 'argument':
-                # push argument val to stack
-                self.output_file.write('@' + val + '\n')
-                self.output_file.write('D=A\n')
-                self.output_file.write('@ARG\n')
-                self.output_file.write('D=M+D\n') # address = RAM[ARG] + val
-                self.output_file.write('A=D\n')
-                self.output_file.write('D=M\n') # D = RAM[address]
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n') # RAM[SP] = D
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n') # increment SP
-            if seg == 'this':
-                # push this val to stack
-                self.output_file.write('@' + val + '\n')
-                self.output_file.write('D=A\n')
-                self.output_file.write('@THIS\n')
-                self.output_file.write('D=M+D\n') # address = RAM[THIS] + val
-                self.output_file.write('A=D\n')
-                self.output_file.write('D=M\n') # D = RAM[address]
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n') # RAM[SP] = D
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n') # increment SP
-            if seg == 'that':
-                # push that val to stack
-                self.output_file.write('@' + val + '\n')
-                self.output_file.write('D=A\n')
-                self.output_file.write('@THAT\n')
-                self.output_file.write('D=M+D\n') # address = RAM[THAT] + val
-                self.output_file.write('A=D\n')
-                self.output_file.write('D=M\n') # D = RAM[address]
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n') # RAM[SP] = D
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n') # increment SP
-            if seg =='pointer':
-                # push poinrer val to stack
-                addr = str(3 + int(val))
-                self.output_file.write('@' + addr + '\n')
-                self.output_file.write('D=M\n') # address = RAM[3 + val]
-                self.output_file.write('@THAT\n')
-                self.output_file.write('D=M+D\n') # D = RAM[THAT + val
-                self.output_file.write('A=D\n')
-                self.output_file.write('D=M\n') # D = RAM[THAT + val]
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n') # RAM[SP] = RAM[THAT + val]
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n')
-            if seg == 'temp':
-                # push temp val to stack
-                addr = str(5 + int(val))
-                self.output_file.write('@'+addr+'\n')
-                self.output_file.write('D=A\n')
-                self.output_file.write('@SP\n')
-                self.output_file.write('A=M\n')
-                self.output_file.write('M=D\n')
-                self.output_file.write('@SP\n')
-                self.output_file.write('M=M+1\n')
+            if seg in ('constant', 'pointer', 'temp','static'):
+                if seg == 'constant':
+                    # push constant val to stack
+                    self.lines.append('@' + val)
+                    self.lines.append('D=A') # D = val
+                else:
+                    if seg =='pointer':
+                        # push poinrer val to stack
+                        addr = str(3 + int(val))
+                    if seg == 'temp':
+                        # push temp val to stack
+                        addr = str(5 + int(val))
+                    if seg == 'static':
+                        # push static val to stack
+                        addr = self.file_name + '.' + val
+                    self.lines.append('@' + addr)
+                    self.lines.append('D=M') # value = RAM[addr]
+                self.lines.append('@SP')
+                self.lines.append('A=M')
+                self.lines.append('M=D')
+                self.lines.append('@SP')
+                self.lines.append('M=M+1')
+            elif seg in ('local', 'argument' , 'this' , 'that'):
+                if seg == 'local':
+                    addr = 'LCL'
+                if seg == 'argument':
+                    addr = 'ARG'
+                if seg == 'this':
+                    addr = 'THIS'
+                if seg == 'that':
+                    addr = 'THAT'
+                # push local/argument/this/that val to stack
+                self.lines.append('@' + val)
+                self.lines.append('D=A')
+                self.lines.append('@' + addr)
+                self.lines.append('D=M+D') # address = RAM[addr] + val
+                self.lines.append('A=D')
+                self.lines.append('D=M') # D = RAM[address]
+                self.lines.append('@SP')
+                self.lines.append('A=M')
+                self.lines.append('M=D') # RAM[SP] = RAM[address]
+                self.lines.append('@SP')
+                self.lines.append('M=M+1') # increment SP
+            
+        if command == 'C_POP':
+            if seg in('pointer' , 'temp', 'static'):
+                if seg == 'pointer':
+                    addr = str(3 + int(val))
+                if seg == 'temp':
+                    addr = str(5 + int(val))
+                if seg == 'static':
+                    addr = self.file_name + '.' + val
+                # pop topmost value from stack
+                self.lines.append('@SP')
+                self.lines.append('M=M-1') # decrement SP
+                self.lines.append('A=M')
+                self.lines.append('D=M') # D = RAM[SP]
+                self.lines.append('@' + addr)
+                self.lines.append('M=D') # RAM[address] = RAM[SP]
+            else:
+                if seg == 'local':
+                    addr = 'LCL'
+                if seg == 'argument':
+                    addr = 'ARG'
+                if seg == 'this':
+                    addr = 'THIS'
+                if seg == 'that':
+                    addr = 'THAT'
+                # pop topmost value from stack to local val
+                self.lines.append('@' + val)
+                self.lines.append('D=A')
+                self.lines.append('@' + addr)
+                self.lines.append('D=M+D')
+                self.lines.append('@R13')
+                self.lines.append('M=D') # R13 = address
+                self.lines.append('@SP')
+                self.lines.append('M=M-1') # decrement SP
+                self.lines.append('A=M')
+                self.lines.append('D=M') # D = RAM[SP]
+                self.lines.append('@R13')
+                self.lines.append('A=M')
+                self.lines.append('M=D') # RAM[address] = RAM[SP]
+    def close(self):
+        """Writes the assembly code """
+        with open(self.output_file_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(self.lines) + '\n')
